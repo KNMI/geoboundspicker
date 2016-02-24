@@ -7,8 +7,8 @@
 (function(root, factory) {
 
   if (typeof define === 'function' && define.amd) {
-    define(['jquery', 'exports', 'openlayers'], function($, exports) {
-      root.geoboundspicker = factory(root, exports, $);
+    define(['jquery', 'exports', 'openlayers'], function($, exports, ol) {
+      root.geoboundspicker = factory(root, exports, ol, $);
     });
 
   } else if (typeof exports !== 'undefined') {
@@ -59,10 +59,10 @@
       },
       invalidFields: function() {
         var fields = [];
-        if (!this._isBetween(this.north, -90, 90)) fields.push("north"); 
-        if (!this._isBetween(this.south, -90, 90)) fields.push("south"); 
-        if (!this._isBetween(this.east, -180, 180)) fields.push("east"); 
-        if (!this._isBetween(this.west, -180, 180)) fields.push("west"); 
+        if (!this._isBetween(this.north, -90, 90)) fields.push("north");
+        if (!this._isBetween(this.south, -90, 90)) fields.push("south");
+        if (!this._isBetween(this.east, -180, 180)) fields.push("east");
+        if (!this._isBetween(this.west, -180, 180)) fields.push("west");
         return fields;
       },
       hasNoValues: function() {
@@ -87,7 +87,7 @@
           (this.north === that.north &&
            this.south === that.south &&
            this.west === that.west &&
-           this.east === that.east) 
+           this.east === that.east)
                    ||
           (this.hasNoValues() && (that === null || that === {}) )
         )
@@ -196,7 +196,7 @@
       opens: 'right',
       drops: 'down'
     }
-    
+
     //custom options from user
     if (typeof options !== 'object' || options === null)
       options = {};
@@ -224,9 +224,9 @@
     this.containerId = this.container.attr("id") || this.container.attr("id","geoboundspicker-"+this.element.offset().top+"-"+this.element.offset().left).attr("id");
     this.olMapId = "geoboundspicker-geoboundsmapid-"+this.element.offset().top+"-"+this.element.offset().left;
     this.container.find(".openlayersmap").attr("id",this.olMapId).css({width: '400px', height: '200px'});
-    
+
     this.initOpenLayers();
-    
+
     this.hideCustom();
 
     if (typeof cb === 'function') {
@@ -254,14 +254,14 @@
         'keydown.geoboundspicker': $.proxy(this.keydown, this)
       });
     } else {
-    
+
       this.element.on({
         'click.geoboundspicker': $.proxy(this.show, this),
         'focus.geoboundspicker': $.proxy(this.show, this),
         'keydown.geoboundspicker': $.proxy(this.keydown, this)
       });
     }
-    
+
     //accessibility aria
     this.element.attr("aria-haspopup",true);
     this.element.attr("aria-owns", this.containerId);
@@ -295,13 +295,13 @@
         var html = '<li tabindex=0 role="button">'+listitem.label+"</li>";
         html = $(html).data("geoboundspicker-area",listitem);
         if (listitem.boundingBox && myGeoBoundsPicker.boundingBox.isEqual(listitem.boundingBox) && activeClass === false) {
-          html.addClass("active"); 
+          html.addClass("active");
           activeClass = true;
         }
 
         // if (listitem.showMap === true && activeClass) {
         // }
-        areasContainer.append(html);  
+        areasContainer.append(html);
       });
       if (this.settings.includeCustom === true) {
         var html = '<li tabindex=0 role="button">'+this.settings.customLabel+"</li>";
@@ -313,7 +313,7 @@
         }
         areasContainer.append(html);
       }
-      
+
     },
     initOpenLayers: function() {
       this.drawSource = new ol.source.Vector();
@@ -335,7 +335,7 @@
           })
         })
       });
-      
+
       this.olMap = new ol.Map({
         /*
          * The View is basically default zoom level, center point, etc.
@@ -351,7 +351,7 @@
          * The Layers are layers in the map. Layers here are a WMS layer
          * and a layer for the drawings.
          */
-        layers : [ 
+        layers : [
           new ol.layer.Tile({
             source : new ol.source.TileWMS({
               url : this.settings.map.tile_wms_url,
@@ -370,7 +370,7 @@
       });
 
       this.olMap.addLayer(this.vectorLayer);
-    
+
       var thisOlMap = this;
         // Adding the draw functionality.
       var geometryFunction = function(coordinates, geometry) {
@@ -402,7 +402,7 @@
       this.drawFeature.on('drawend', function(e) {
         var extent = e.feature.getGeometry().getExtent();
 
-        // not ideal, but didn't manage to clear the 
+        // not ideal, but didn't manage to clear the
         // drawed drawing on drawend.
         e.feature.setStyle(new ol.style.Style({
           zIndex: -100
@@ -413,7 +413,7 @@
         thisOlMap.updateCoordinateInputFields();
         thisOlMap.renderAreas();
         thisOlMap.formInputsChanged();
-          
+
       });
     },
     describe: function() {
@@ -428,6 +428,19 @@
         }
       });
       return description;
+    },
+    getAreaName: function() {
+      var myGeoBoundsPicker = this;
+      var areaName = 'custom';
+      if (this.settings.includeNone && myGeoBoundsPicker.boundingBox.hasNoValues()) {
+        areaName = 'none';
+      };
+      $(this.settings.areas).each(function(index, listitem) {
+        if (listitem.boundingBox && myGeoBoundsPicker.boundingBox.isEqual(listitem.boundingBox)) {
+          areaName = listitem.name;
+        }
+      });
+      return areaName;
     },
 
     move: function() {
@@ -509,7 +522,7 @@
         this.move();
         this.element.trigger('show.geoboundspicker', this);
         this.renderAreas();
-        
+
         this.isShowing = true;
     },
 
@@ -548,7 +561,7 @@
 
     clickApply: function(e) {
       this.updateElement();
-      
+
       this.hideCustom();
       this.hide();
       this.callback(e);
@@ -565,9 +578,9 @@
 
         this.updateView();
     },
-    
+
     handleArrowKeys: function(e) {
-    
+
       if ($(this.container).find("li:focus").length === 0) {
         $(this.container).find("li.active").focus();
       } else {
@@ -585,7 +598,7 @@
       if (e.keyCode === 9) this.hide();
       if (e.keyCode === 13) this.toggle();
     },
-    
+
     keydownArea: function(e) {
       if ([38,40].lastIndexOf(e.keyCode) >= 0) this.handleArrowKeys(e);
       if ((e.keyCode === 13) || e.keyCode === 32) {
@@ -598,34 +611,35 @@
     },
 
     remove: function() {
+        // TODO unload OpenLayers somehow, couldn't find how to do it
         this.container.remove();
         this.element.off('.geoboundspicker');
         this.element.removeData();
     },
-    
+
     hoverArea: function(e) {
-      
+
     },
-    
+
     updateCoordinates: function(boundingBox) {
       this.boundingBox.north = boundingBox.north;
       this.boundingBox.east = boundingBox.east;
       this.boundingBox.south = boundingBox.south;
       this.boundingBox.west = boundingBox.west;
     },
-    
+
     updateCoordinateInputFields: function() {
       this.container.find("input[name='north']").val(Math.round(this.boundingBox.north*10)/10.0);
       this.container.find("input[name='east']").val(Math.round(this.boundingBox.east*10)/10.0);
       this.container.find("input[name='south']").val(Math.round(this.boundingBox.south*10)/10.0);
       this.container.find("input[name='west']").val(Math.round(this.boundingBox.west*10)/10.0);
     },
-    
+
     updateCoordinateFromInputField: function(bound) {
       this.boundingBox[bound] = parseFloat(this.container.find("input[name='"+bound+"']").val());
       this.formInputsChanged();
     },
-    
+
     updateCoordinatesFromInputFields: function() {
       this.updateCoordinateFromInputField("north");
       this.updateCoordinateFromInputField("east");
@@ -658,18 +672,18 @@
         this.clickApply();
       }
     },
-    
+
     showCustom: function() {
       this.container.find(".custom").show();
-      this.container.find(".custom").attr("aria-expanded", true); 
+      this.container.find(".custom").attr("aria-expanded", true);
       this.olMap.updateSize();
       this.drawBoundingBox();
       this.updateCoordinateInputFields();
     },
-    
+
     hideCustom: function() {
       this.container.find(".custom").hide();
-      this.container.find(".custom").attr("aria-expanded", false); 
+      this.container.find(".custom").attr("aria-expanded", false);
     },
     coordinateInputFieldChanged: function(event) {
       var fieldName = event.target.name;
@@ -681,16 +695,16 @@
     },
     drawBoundingBox: function() {
       if (this.boundingBox.isValid()) {
-      
+
         this.drawSource.clear();
-    
+
         var east,north,west,south;
 
         east = this.boundingBox.east;
         north = this.boundingBox.north;
         west = this.boundingBox.west;
         south = this.boundingBox.south;
-    
+
         if (east < west){
           east = east+360;
         }
@@ -702,7 +716,7 @@
           [ east,south ],
           [ east,north ]
         ];
-    
+
         var polygon = new ol.geom.Polygon([ ring ]);
 
         var feature = new ol.Feature(polygon);
@@ -712,7 +726,7 @@
 
         /* Make the bouding box fit perfectly in the map. */
         var extent = ol.extent.boundingExtent(ring);
-        this.olMap.getView().fit(extent, this.olMap.getSize());      	
+        this.olMap.getView().fit(extent, this.olMap.getSize());
 
       }
     }
@@ -727,6 +741,8 @@
     });
     return this;
   };
+
+  return GeoBoundsPicker;
 
 }));
 
